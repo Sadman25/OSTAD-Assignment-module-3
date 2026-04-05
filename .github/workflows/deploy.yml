@@ -8,7 +8,7 @@ on:
 jobs:
   test:
     name: Run Tests
-    runs-on: ec2-runner
+    runs-on: ip-172-31-31-174
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -35,7 +35,7 @@ jobs:
   deploy:
     name: Deploy to EC2
     needs: test
-    runs-on: ec2-runner
+    runs-on: ip-172-31-31-174
     steps:
       - name: Download test results artifact
         uses: actions/download-artifact@v4
