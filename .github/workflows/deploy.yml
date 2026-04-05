@@ -1,0 +1,57 @@
+name: Test and Deploy
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ec2-runner
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests and capture output
+        run: |
+          npm run check > test-results.txt 2>&1
+          echo "Test exit code: $?" >> test-results.txt
+
+      - name: Upload test results as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: test-results.txt
+
+  deploy:
+    name: Deploy to EC2
+    needs: test
+    runs-on: ec2-runner
+    steps:
+      - name: Download test results artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: test-results
+
+      - name: Display test results
+        run: cat test-results.txt
+
+      - name: Deploy application
+        run: |
+          # Navigate to your app directory on EC2
+          cd /home/ubuntu/OSTAD-Assignment-module-3
+          # Pull latest code
+          git pull origin main
+          # Install production dependencies only
+          npm ci --omit=dev
+          # Restart the app (using PM2)
+          pm2 restart node-express-app || pm2 start src/server.js --name node-express-app
